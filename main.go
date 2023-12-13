@@ -9,6 +9,7 @@ import (
 func main() {
 
 	r := gin.Default()
+
 	r.GET("/ping", handlers.Pong)
 	r.GET("/user", handlers.GetUser)
 	r.POST("/user", handlers.PostUser)
