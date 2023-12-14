@@ -59,3 +59,5 @@ func PostUsers(c *gin.Context) {
 	users = append(users, newUser)
 	c.IndentedJSON(http.StatusCreated, newUser)
 }
+
+// Neki4 4elebosik, esli yvidel, to ya sdelay zavtra(segodny)14122023
