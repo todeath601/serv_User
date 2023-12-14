@@ -6,37 +6,56 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type User struct {
-	Id        string `json:"id"`
+type user struct {
+	ID        string `json:"id"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
-	Age       string `json:"age"`
+	Age       int    `json:"age"`
 }
 
-func Pong(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "pong",
-	})
+type error struct {
+	Error string `json:"error`
 }
 
-func GetUser(c *gin.Context) {
-
-	user := User{"1", "Alex", "Shveden", "23"}
-	c.JSON(200, gin.H{
-		"user": user,
-	})
+var users = []user{
+	{ID: "1", FirstName: "Vladimir", LastName: "Sakhonchyk", Age: 24},
+	{ID: "2", FirstName: "Nikita", LastName: "Samokhvalov", Age: 25},
+	{ID: "3", FirstName: "Alina", LastName: "Makarenko", Age: 22},
 }
 
-func PostUser(c *gin.Context) {
+func GetUsers(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, users)
+}
 
-	user := User{}
-	err := c.BindJSON(&user)
+func DeleteUsersById(c *gin.Context) {
+	id := c.Param("id")
+	for i, a := range users {
+		if a.ID == id {
+			users = append(users[:i], users[i+1:]...)
+			c.IndentedJSON(http.StatusNoContent, a)
+			return
+		}
+	}
+	c.IndentedJSON(http.StatusNotFound, error{"not found"})
+}
+
+func GetUsersById(c *gin.Context) {
+	id := c.Param("id")
+	for _, a := range users {
+		if a.ID == id {
+			c.IndentedJSON(http.StatusOK, a)
+		}
+	}
+	c.IndentedJSON(http.StatusNotFound, error{"not found"})
+}
+
+func PostUsers(c *gin.Context) {
+	var newUser user
+	err := c.BindJSON(&newUser)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errror": "BadRequest"})
+		c.IndentedJSON(http.StatusBadRequest, error{"bad request"})
 		return
 	}
-
-	c.JSON(200, gin.H{
-		"user": user,
-	})
+	users = append(users, newUser)
+	c.IndentedJSON(http.StatusCreated, newUser)
 }

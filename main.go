@@ -8,10 +8,10 @@ import (
 
 func main() {
 
-	r := gin.Default()
-
-	r.GET("/ping", handlers.Pong)
-	r.GET("/user", handlers.GetUser)
-	r.POST("/user", handlers.PostUser)
-	r.Run(":8080")
+	router := gin.Default()
+	router.GET("/users", handlers.GetUsers)
+	router.GET("/users/:id", handlers.GetUsersById)
+	router.POST("/users", handlers.PostUsers)
+	router.DELETE("/users/:id", handlers.DeleteUsersById)
+	router.Run(":8080")
 }
