@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"page/database"
 	"page/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +10,7 @@ import (
 
 func getRouter() *gin.Engine {
 	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
 	router.GET("/users", handlers.GetUsers)
 	router.GET("/users/:id", handlers.GetUsersById)
 	router.POST("/users", handlers.PostUsers)
@@ -16,6 +19,11 @@ func getRouter() *gin.Engine {
 }
 
 func main() {
+	storage := database.NewPostgresStorage()
+	defer storage.Close()
 	router := getRouter()
-	router.Run(":8080")
+
+	if err := router.Run(":8080"); err != nil {
+		fmt.Println("Ошибка при запуске сервера:", err)
+	}
 }

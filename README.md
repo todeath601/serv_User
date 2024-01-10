@@ -1,0 +1,2 @@
+## how to run db for this pj
+`docker run --name psql -p 5432:5432 -e POSTGRES_USER=user -e POSTGRES_PASSWORD=admin -e POSTGRES_DB=db -e DB_HOST=articles_database -e POSTGRES_SSL_MODE=disable --rm postgres`
