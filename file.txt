@@ -1,0 +1,11 @@
+// func NewMemoryStorage(storage service.Storage) *MemoryStorage {
+// 	users := []service.User{
+// 		{ID: "6", FirstName: "Vladimir", LastName: "Sakhonchyk", Age: 24},
+// 		{ID: "7", FirstName: "Nikita", LastName: "Samokhvalov", Age: 25},
+// 		{ID: "8", FirstName: "Alina", LastName: "Makarenko", Age: 22},
+// 	}
+// 	for _, user := range users {
+// 		storage.Create(user)
+// 	}
+// 	return &MemoryStorage{users: users}
+// }
