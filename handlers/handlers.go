@@ -89,7 +89,7 @@ func PostUsers(c *gin.Context) {
 	storage.Create(newUser)
 	logger.WithFields(logrus.Fields{
 		"user_id": newUser.ID,
-	}).Info("User created successfullyy")
+	}).Info("User created successfully")
 	c.IndentedJSON(http.StatusCreated, newUser)
 }
 
