@@ -5,9 +5,9 @@ import (
 	"log"
 	"page/database"
 	"page/handlers"
-	"page/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func getRouter() *gin.Engine {
@@ -15,35 +15,29 @@ func getRouter() *gin.Engine {
 	router.GET("/users", handlers.GetUsers)
 	router.GET("/users/:id", handlers.GetUsersById)
 	router.POST("/users", handlers.PostUsers)
-	router.DELETE("/users/:id", handlers.DeleteUsersById)
+	// router.DELETE("/users/:id", handlers.DeleteUsersById)
 	return router
 }
 
-func CreateTableUser() {
-	storage := database.NewStorage()
+func CreateTableUser(logger *logrus.Logger) {
+	storage := database.NewStorage(logger)
 	err := storage.CreateSchema()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
-
-func CreateDB() {
-	storage := database.NewPostgresStorage()
+func CreateDB(logger *logrus.Logger) {
+	storage := database.NewPostgresStorage(logger)
 	defer storage.Close()
 }
 
-func InitLogger() {
-	service.Init()
-	p := database.NewPostgresStorage()
-	users := p.Read()
-	fmt.Println(users)
-}
-
 func main() {
-
-	InitLogger()
-	CreateDB()
-	CreateTableUser()
+	logger := logrus.New()
+	logger.Formatter = &logrus.TextFormatter{}
+	logger.Level = logrus.DebugLevel
+	logger.Out = logrus.StandardLogger().Out
+	CreateDB(logger)
+	CreateTableUser(logger)
 	gin.SetMode(gin.ReleaseMode)
 	router := getRouter()
 

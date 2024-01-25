@@ -11,10 +11,11 @@ import (
 
 type MemoryStorage struct {
 	users []service.User
+	log   *logrus.Logger
 }
 
 func (s *MemoryStorage) Create(us service.User) service.User {
-	service.Logger.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"action":    "create_user",
 		"user_data": us,
 	}).Info("Creating user in memory storage")
@@ -26,7 +27,7 @@ func (s *MemoryStorage) Create(us service.User) service.User {
 }
 
 func (s *MemoryStorage) Read() []service.User {
-	service.Logger.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"action": "read_users",
 	}).Info("Reading users from memory storage")
 
@@ -36,7 +37,7 @@ func (s *MemoryStorage) Read() []service.User {
 func (s *MemoryStorage) ReadOne(id string) (service.User, error) {
 	for _, a := range s.users {
 		if a.ID == id {
-			service.Logger.WithFields(logrus.Fields{
+			s.log.WithFields(logrus.Fields{
 				"action": "read_one_user",
 				"id":     id,
 			}).Info("User found in memory storage")
@@ -45,7 +46,7 @@ func (s *MemoryStorage) ReadOne(id string) (service.User, error) {
 		}
 	}
 
-	service.Logger.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"action": "read_one_user",
 		"id":     id,
 	}).Error("User not found in memory storage")
@@ -53,32 +54,32 @@ func (s *MemoryStorage) ReadOne(id string) (service.User, error) {
 	return service.User{}, errors.New("not found")
 }
 
-func (s *MemoryStorage) Delete(id string) error {
-	for i, a := range s.users {
-		if a.ID == id {
-			deleteUser := append(s.users[:i], s.users[i+1:]...)
-			s.users = deleteUser
+// func (s *MemoryStorage) Delete(id string) error {
+// 	for i, a := range s.users {
+// 		if a.ID == id {
+// 			deleteUser := append(s.users[:i], s.users[i+1:]...)
+// 			s.users = deleteUser
 
-			service.Logger.WithFields(logrus.Fields{
-				"action": "delete_user",
-				"id":     id,
-			}).Info("User deleted successfully")
+// 			s.log.WithFields(logrus.Fields{
+// 				"action": "delete_user",
+// 				"id":     id,
+// 			}).Info("User deleted successfully")
 
-			return nil
-		}
-	}
+// 			return nil
+// 		}
+// 	}
 
-	service.Logger.WithFields(logrus.Fields{
-		"action": "delete_user",
-		"id":     id,
-	}).Error("User not found")
+// 	s.log.WithFields(logrus.Fields{
+// 		"action": "delete_user",
+// 		"id":     id,
+// 	}).Error("User not found")
 
-	return errors.New("not found")
-}
+// 	return errors.New("not found")
+// }
 
 func (s *MemoryStorage) Close() {
 	if s != nil {
-		s.Close()
+		s.log = nil
 	}
 }
 
@@ -95,7 +96,8 @@ func (s *MemoryStorage) Close() {
 // }
 
 type PostgresStorage struct {
-	db *sql.DB
+	db  *sql.DB
+	log *logrus.Logger
 }
 
 func (p *PostgresStorage) CreateSchema() error {
@@ -103,30 +105,29 @@ func (p *PostgresStorage) CreateSchema() error {
 	if err != nil {
 		_, err = p.db.Exec("CREATE TABLE IF NOT EXISTS users (ID SERIAL PRIMARY KEY, FirstName VARCHAR(50), LastName VARCHAR(50), Age integer);")
 		if err != nil {
-			service.Logger.WithError(err).Error("Error creating the users table schema")
+			p.log.WithError(err).Error("Error creating the users table schema")
 			return err
 		}
-		service.Logger.Info("Users table schema created successfully")
+		p.log.Info("Users table schema created successfully")
 	} else {
-		service.Logger.Info("Users table already exists")
+		p.log.Info("Users table already exists")
 	}
 	return nil
 }
 
-func NewPostgresStorage() *PostgresStorage {
+func NewPostgresStorage(logger *logrus.Logger) *PostgresStorage {
 	connStr := "port=5432 host=localhost user=user password=admin dbname=db sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 	db.Stats()
-
-	storage := &PostgresStorage{db: db}
+	storage := &PostgresStorage{db: db, log: logger}
 	err = storage.CreateSchema()
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
-	return storage
+	return &PostgresStorage{db: db, log: logger}
 }
 
 func (p *PostgresStorage) Close() {
@@ -136,12 +137,12 @@ func (p *PostgresStorage) Close() {
 }
 
 func (p *PostgresStorage) Create(us service.User) service.User {
-	service.Logger.WithFields(logrus.Fields{
+	p.log.WithFields(logrus.Fields{
 		"action": "create_user",
 	}).Info("Create user")
 	_, err := p.db.Exec("INSERT INTO users(ID, FirstName, LastName, Age) VALUES($1, $2, $3, $4)", us.ID, us.FirstName, us.LastName, us.Age)
 	if err != nil {
-		service.Logger.WithError(err).Error("Error while creating user")
+		p.log.WithError(err).Error("Error while creating user")
 	}
 	return us
 }
@@ -152,12 +153,12 @@ func (p *PostgresStorage) ReadOne(id string) (service.User, error) {
 	err := row.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Age)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			service.Logger.WithFields(logrus.Fields{
+			p.log.WithFields(logrus.Fields{
 				"action": "read_user",
 				"id":     id,
 			}).Info("User not found")
 		} else {
-			service.Logger.WithFields(logrus.Fields{
+			p.log.WithFields(logrus.Fields{
 				"action": "read_user",
 				"id":     id,
 			}).Error("Error executing query")
@@ -165,7 +166,7 @@ func (p *PostgresStorage) ReadOne(id string) (service.User, error) {
 		return user, err
 	}
 
-	service.Logger.WithFields(logrus.Fields{
+	p.log.WithFields(logrus.Fields{
 		"action": "read_user",
 		"id":     id,
 	}).Info("User successfully received")
@@ -173,22 +174,12 @@ func (p *PostgresStorage) ReadOne(id string) (service.User, error) {
 	return user, nil
 }
 
-func (p *PostgresStorage) Delete(id string) error {
-	_, err := p.db.Exec("DELETE FROM users WHERE id = $1", id)
-	if err != nil {
-		service.Logger.WithError(err).WithField("userID", id).Error("Error deleting user")
-		return err
-	}
-
-	service.Logger.WithField("userID", id).Info("User deleted successfully")
-	return nil
-}
-
 func (p *PostgresStorage) Read() []service.User {
 	var users []service.User
 	rows, err := p.db.Query("SELECT * FROM users")
 	if err != nil {
-		service.Logger.WithError(err).Fatal("Error executing query")
+		p.log.WithError(err).Error("Error executing query")
+		return nil
 	}
 	defer rows.Close()
 
@@ -196,14 +187,18 @@ func (p *PostgresStorage) Read() []service.User {
 		var u service.User
 		err := rows.Scan(&u.ID, &u.FirstName, &u.LastName, &u.Age)
 		if err != nil {
-			service.Logger.WithError(err).Fatal("Error scanning row")
+			p.log.WithError(err).Error("Error scanning row")
+			return nil
 		}
 		users = append(users, u)
 	}
-	service.Logger.WithField("userCount", len(users)).Info("Read users successfully")
+
+	p.log.WithFields(logrus.Fields{
+		"userCount": len(users),
+	}).Info("Read users successfully")
 	return users
 }
 
-func NewStorage() service.Storage {
-	return NewPostgresStorage()
+func NewStorage(logger *logrus.Logger) service.Storage {
+	return NewPostgresStorage(logger)
 }

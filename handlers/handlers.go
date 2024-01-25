@@ -16,7 +16,7 @@ type HttpError struct {
 
 func GetUsers(c *gin.Context) {
 	logger := logrus.New()
-	storage := database.NewStorage()
+	storage := database.NewStorage(logger)
 	logger.WithFields(logrus.Fields{
 		"endpoint": "/users",
 		"method":   "GET",
@@ -28,30 +28,30 @@ func GetUsers(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, users)
 }
 
-func DeleteUsersById(c *gin.Context) {
-	logger := logrus.New()
-	storage := database.NewStorage()
-	id := c.Param("id")
-	logger.WithFields(logrus.Fields{
-		"endpoint": "/users/:id",
-		"method":   "DELETE",
-		"id":       id,
-	}).Info("Handling DELETE request for user by ID")
-	err := storage.Delete(id)
-	if err != nil {
-		logger.WithError(err).Error("Error deleting user by ID")
-		c.IndentedJSON(http.StatusNotFound, HttpError{Error: "not found"})
-		return
-	}
-	logger.WithFields(logrus.Fields{
-		"id": id,
-	}).Info("User deleted successfully")
-	c.IndentedJSON(http.StatusNoContent, nil)
-}
+// func DeleteUsersById(c *gin.Context) {
+// 	logger := logrus.New()
+// 	storage := database.NewStorage(logger)
+// 	id := c.Param("id")
+// 	logger.WithFields(logrus.Fields{
+// 		"endpoint": "/users/:id",
+// 		"method":   "DELETE",
+// 		"id":       id,
+// 	}).Info("Handling DELETE request for user by ID")
+// 	err := storage.Delete(id)
+// 	if err != nil {
+// 		logger.WithError(err).Error("Error deleting user by ID")
+// 		c.IndentedJSON(http.StatusNotFound, HttpError{Error: "not found"})
+// 		return
+// 	}
+// 	logger.WithFields(logrus.Fields{
+// 		"id": id,
+// 	}).Info("User deleted successfully")
+// 	c.IndentedJSON(http.StatusNoContent, nil)
+// }
 
 func GetUsersById(c *gin.Context) {
 	logger := logrus.New()
-	storage := database.NewStorage()
+	storage := database.NewStorage(logger)
 	id := c.Param("id")
 	logger.WithFields(logrus.Fields{
 		"endpoint": "/users/:id",
@@ -71,8 +71,9 @@ func GetUsersById(c *gin.Context) {
 }
 
 func PostUsers(c *gin.Context) {
+
 	logger := logrus.New()
-	storage := database.NewStorage()
+	storage := database.NewStorage(logger)
 	var newUser service.User
 	logger.WithFields(logrus.Fields{
 		"endpoint": "/users",
