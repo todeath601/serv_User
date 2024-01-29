@@ -12,5 +12,5 @@ type Storage interface {
 	Create(User) User
 	Read() []User
 	ReadOne(id string) (User, error)
-	// Delete(id string) error
+	Delete(id string) error
 }

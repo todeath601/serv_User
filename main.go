@@ -10,12 +10,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getRouter() *gin.Engine {
+func getRouter(logger *logrus.Logger) *gin.Engine {
+	handler := handlers.NewHandler(logger)
 	router := gin.Default()
-	router.GET("/users", handlers.GetUsers)
-	router.GET("/users/:id", handlers.GetUsersById)
-	router.POST("/users", handlers.PostUsers)
-	// router.DELETE("/users/:id", handlers.DeleteUsersById)
+	router.GET("/users", handler.GetUsers)
+	router.GET("/users/:id", handler.GetUsersById)
+	router.POST("/users", handler.PostUsers)
+	router.DELETE("/users/:id", handler.DeleteUsersById)
 	return router
 }
 
@@ -39,7 +40,7 @@ func main() {
 	CreateDB(logger)
 	CreateTableUser(logger)
 	gin.SetMode(gin.ReleaseMode)
-	router := getRouter()
+	router := getRouter(logger)
 
 	if err := router.Run(":8080"); err != nil {
 		fmt.Println("Ошибка при запуске сервера:", err)

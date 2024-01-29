@@ -54,29 +54,6 @@ func (s *MemoryStorage) ReadOne(id string) (service.User, error) {
 	return service.User{}, errors.New("not found")
 }
 
-// func (s *MemoryStorage) Delete(id string) error {
-// 	for i, a := range s.users {
-// 		if a.ID == id {
-// 			deleteUser := append(s.users[:i], s.users[i+1:]...)
-// 			s.users = deleteUser
-
-// 			s.log.WithFields(logrus.Fields{
-// 				"action": "delete_user",
-// 				"id":     id,
-// 			}).Info("User deleted successfully")
-
-// 			return nil
-// 		}
-// 	}
-
-// 	s.log.WithFields(logrus.Fields{
-// 		"action": "delete_user",
-// 		"id":     id,
-// 	}).Error("User not found")
-
-// 	return errors.New("not found")
-// }
-
 func (s *MemoryStorage) Close() {
 	if s != nil {
 		s.log = nil
@@ -127,7 +104,7 @@ func NewPostgresStorage(logger *logrus.Logger) *PostgresStorage {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	return &PostgresStorage{db: db, log: logger}
+	return storage
 }
 
 func (p *PostgresStorage) Close() {
@@ -172,6 +149,50 @@ func (p *PostgresStorage) ReadOne(id string) (service.User, error) {
 	}).Info("User successfully received")
 
 	return user, nil
+}
+func (p *PostgresStorage) DeleteUsersById(id string) error {
+	_, err := p.db.Exec("DELETE FROM users WHERE id = $1", id)
+	if err != nil {
+		p.log.WithFields(logrus.Fields{
+			"action": "delete_user",
+			"id":     id,
+		}).Error("Error deleting user by ID")
+		return err
+	}
+
+	p.log.WithFields(logrus.Fields{
+		"action": "delete_user",
+		"id":     id,
+	}).Info("User deleted successfully")
+
+	return nil
+}
+
+func (p *PostgresStorage) Delete(id string) error {
+	var user service.User
+	row := p.db.QueryRow("DELETE * FROM users WHERE id = $1", id)
+	err := row.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Age)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			p.log.WithFields(logrus.Fields{
+				"action": "read_user",
+				"id":     id,
+			}).Info("User not found")
+		} else {
+			p.log.WithFields(logrus.Fields{
+				"action": "read_user",
+				"id":     id,
+			}).Error("Error executing query")
+		}
+		return err
+	}
+
+	p.log.WithFields(logrus.Fields{
+		"action": "read_user",
+		"id":     id,
+	}).Info("User successfully received")
+
+	return nil
 }
 
 func (p *PostgresStorage) Read() []service.User {
