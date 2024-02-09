@@ -6,6 +6,7 @@ import (
 	"page/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 )
@@ -15,11 +16,19 @@ type HttpError struct {
 }
 
 type Handler struct {
-	logger *logrus.Logger
+	logger    *logrus.Logger
+	validator *validator.Validate
 }
 
 func NewHandler(logger *logrus.Logger) *Handler {
-	return &Handler{logger: logger}
+	return &Handler{
+		logger:    logger,
+		validator: validator.New(),
+	}
+}
+
+func (h *Handler) ValidateStruct(s interface{}) error {
+	return h.validator.Struct(s)
 }
 
 func (h *Handler) GetUsers(c *gin.Context) {
@@ -59,7 +68,7 @@ func (h *Handler) GetUsersById(c *gin.Context) {
 
 	storage := database.NewStorage(h.logger)
 	id := c.Param("id")
-	h.logger.WithFields(logrus.Fields{
+	logrus.WithFields(logrus.Fields{
 		"endpoint": "/users/:id",
 		"method":   "GETBYID",
 		"id":       id,
@@ -89,6 +98,11 @@ func (h *Handler) PostUsers(c *gin.Context) {
 	if err := c.BindJSON(&newUser); err != nil {
 		h.logger.WithError(err).Error("Error binding JSON data")
 		c.IndentedJSON(http.StatusBadRequest, HttpError{Error: "bad request"})
+		return
+	}
+	if err := h.ValidateStruct(newUser); err != nil {
+		h.logger.WithError(err).Error("Validate error")
+		c.IndentedJSON(http.StatusBadRequest, HttpError{Error: "validation error"})
 		return
 	}
 	storage.Create(newUser)

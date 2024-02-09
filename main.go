@@ -1,24 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"page/database"
-	"page/handlers"
+	"page/router"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
-
-func getRouter(logger *logrus.Logger) *gin.Engine {
-	handler := handlers.NewHandler(logger)
-	router := gin.Default()
-	router.GET("/users", handler.GetUsers)
-	router.GET("/users/:id", handler.GetUsersById)
-	router.POST("/users", handler.PostUsers)
-	router.DELETE("/users/:id", handler.DeleteUsersById)
-	return router
-}
 
 func CreateTableUser(logger *logrus.Logger) {
 	storage := database.NewStorage(logger)
@@ -33,16 +22,19 @@ func CreateDB(logger *logrus.Logger) {
 }
 
 func main() {
+
 	logger := logrus.New()
 	logger.Formatter = &logrus.TextFormatter{}
 	logger.Level = logrus.DebugLevel
 	logger.Out = logrus.StandardLogger().Out
+	r := router.GetRouter(logger)
+	r.Use(router.Autorize(logger))
 	CreateDB(logger)
 	CreateTableUser(logger)
 	gin.SetMode(gin.ReleaseMode)
-	router := getRouter(logger)
-
-	if err := router.Run(":8080"); err != nil {
-		fmt.Println("Ошибка при запуске сервера:", err)
+	router.GetRouter(logger)
+	if err := r.Run(":8080"); err != nil {
+		log.Fatal("Ошибка при запуске сервера:", err)
 	}
+
 }
